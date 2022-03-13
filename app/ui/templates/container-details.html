@@ -1,0 +1,942 @@
+{% extends "index.html" %} {% block content %}
+<div class="col-lg-12 main-div">
+    {% if container == None %}
+    <div class="alert alert-danger" role="alert"> CONTAINER <b>{{name}}</b> : {{message}} !</div>
+    <script>
+        window.location = '/ui/containers';
+    </script>
+    {% else %}
+    <script>
+        $(function () {
+            $.proxy(App.containerDetails.initContainerDetails('{{container.name}}'));
+            App.containerDetails.data = {{container|tojson}};
+            App.containerDetails.networks = {{networks|tojson}};
+            App.containerDetails.initKeyValuePairs.call(App.containerDetails);
+            App.containerDetails.setInitialData.call(App.containerDetails);
+        });
+    </script>
+    <div class="col-lg-12">
+        <legend>Container Details : <b>{{container.name}}</b> <span class="cont-details label status_{{container.name}} label-{%if container.status == 'Running' %}success{% elif container.status == 'Stopped' %}danger{%else %}info{% endif %}"><span class="glyphicon glyphicon-off"></span> {{container.status}}</span> <span class="glyphicon glyphicon-refresh spinning loader"></span> <button class="label btn btn-primary pull-right" id="buttonSave" style="display:none;">Save</button> </legend>
+        <div class="form-group">
+            {% if container.status == 'Running' %}
+                <button class="btn btn-default btn-stop_container btn-sm" id="buttonStopDetail">
+                    <span class="glyphicon glyphicon-stop"> </span> Stop
+                </button>
+                <button class="btn btn-default btn-restart_container btn-sm" id="buttonRestartDetail">
+                    <span class="glyphicon glyphicon-repeat"> </span> Restart
+                </button>
+                <button class="btn btn-default btn-freeze_container btn-sm" id="buttonFreezeDetail">
+                    <span class="glyphicon glyphicon-ok-circle"> </span> Freeze
+                </button>
+
+                <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+                <button class="btn btn-default btn-delete_container btn-sm" id="buttonDeleteDetail">
+                        <span class="glyphicon glyphicon-remove-sign"> </span> Delete
+                </button>
+
+            {% else %}
+                <button class="btn btn-default btn-start_container btn-sm" id="buttonStartDetail">
+                    <span class="glyphicon glyphicon-play"> </span> Start
+                </button>
+                {% if container.status == 'Frozen' %}
+                 <button class="btn btn-default btn-unfreeze_container btn-sm" id="buttonUnfreezeDetail">
+                        <span class="glyphicon glyphicon-remove-circle"> </span> Unfreeze
+                 </button>
+                {% endif %}
+                <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+                <button class="btn btn-default btn-delete_container btn-sm" id="buttonDeleteDetail">
+                        <span class="glyphicon glyphicon-remove-sign"> </span> Delete
+                </button>
+
+            <!--<label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>-->
+            {% if container.status != 'Frozen' %}
+                <button class="btn btn-default btn-freeze_container btn-sm" id="buttonFreezeDetail">
+                    <span class="glyphicon glyphicon-ok-circle"> </span> Freeze
+                </button>
+            {% endif %}
+            {% endif %}
+
+            <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+            <button id="buttonSnapshotContainerDetail" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-camera"></span> Snapshot</button>
+            <button id="buttonCloneContainerDetail" class="btn btn-default btn-sm"><span class="glyphicon  glyphicon-duplicate"></span> Clone</button>
+            <button id="buttonMoveContainerDetail" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-share"></span> Move</button>
+            <button id="buttonExportContainerDetail" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-export"></span> Export</button>
+            <button id="terminalContainer" class="btn btn-default btn-sm" onClick="$.proxy(App.containers.showTerminalContainer('{{container.name}}'));" title="Terminal to this Container"><span class="glyphicon glyphicon-console"></span> Terminal</button>
+
+
+
+        </div>
+        <div class="container-details-tabs">
+            <div id="exTab3">
+                <ul class="nav nav-tabs">
+                    <li class="active">
+                        <a href="#1" aria-expanded="true" class="tab-background" data-toggle="tab">Details</a>
+                    </li>
+                    <li>
+                        <a href="#2" data-toggle="tab">Networking</a>
+                    </li>
+                   <li>
+                        <a href="#3" data-toggle="tab">Snapshots</a>
+                    </li>
+                    <li>
+                        <a href="#4" data-toggle="tab">Advanced</a>
+                    </li>
+                    <li>
+                        <a href="#5" data-toggle="tab">File Manager</a>
+                    </li>
+                    <li class="pull-right">
+                        <button class="btn btn-default btn-rounded-corners btn-xs btn-json" href="#" id="rawJSONContainerDetails">JSON</button>
+                    </li>
+                </ul>
+
+			<div class="tab-content">
+			  <div class="tab-pane tab-details active" id="1">
+                  <div class="col-lg-12 add-borders text-center">
+                          <div class="col-md-3">
+                              <div class="col-md-12 text-center">
+                                  <img src="../static/images/CPU-icon.png" alt="">
+
+                              </div>
+                              <div class="col-md-12">
+                                  <h5>CPU</h5>
+                                  <p>{{'%0.1f'|format(container.cpu.usage/1000000000)}}(sec)</p>
+                              </div>
+                          </div>
+                          <div class="col-md-3">
+                              <div class="col-md-12 text-center">
+                                 <img src="../static/images/Ram-icon.png" alt="">
+                              </div>
+                              <div class="col-md-12">
+                                  <h5>Memory</h5>
+                                  <p>current: {{'%0.2f'|format(container.memory.usage/(1024*1024))}}MB</p>
+                                  <p>peak: {{'%0.2f'|format(container.memory.usage_peak/(1024*1024))}}MB</p>
+                              </div>
+
+                          </div>
+                          <div class="col-md-3">
+                               <div class="col-md-12 text-center">
+                                    <img src="../static/images/HDD-icon.jpg" alt="">
+                               </div>
+                              <div class="col-md-12">
+                                  <h5>Disk</h5>
+                                  <p>root: 308.00kB</p>
+                              </div>
+                          </div>
+                          <div class="col-md-3">
+                               <div class="col-md-12 text-center">
+                                  <img src="../static/images/NIC-icon.png" alt="">
+                               </div>
+                              <div class="col-md-12">
+                                  <h5>Network</h5>
+                                  {% if container.network is mapping %}
+                                    {% for key, value in container.network.items() %}
+                                        {% if key!='lo' %}
+                                            <p><span>{{ key }}: </span> B {{'%0.2f'|format(container.network[key]['counters']['bytes_received']/1024)}}kB | {{'%0.2f'|format(container.network[key]['counters']['bytes_sent']/1024)}}kB P {{container.network[key]['counters']['packets_received']}} | {{container.network[key]['counters']['packets_sent']}}</p>
+                                        {% endif %}
+                                    {% endfor %}
+                                  {% endif %}
+                              </div>
+                          </div>
+                      </div>
+                  <div class="col-lg-12 add-borders container-little-details padding-top-25">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <h5 class="inline">Name :</h5>
+                                <label contenteditable="true" id="containerNameInput" class="formModifier font400">{{container.name}}</label>
+                                <span class="btn btn-xs btn-default glyphicon glyphicon-pencil formModifier" id="editNameButton"></span>
+                            </div>
+                            <div class="form-group">
+                                <h5 class="inline">Type :</h5>
+                                {% if container.ephemeral %}
+                                    <label class="font400">Ephemeral</label>
+                                {% else %}
+                                    <label class="font400">Persistent</label>
+                                {% endif %}
+                            </div>
+                            <div class="form-group">
+                                <h5 class="inline">Architecture :</h5>
+                                <label class="font400">{{container.architecture}}</label>
+                            </div>
+
+                            <div class="form-group">
+                                <h5 class="inline">OS Image :</h5>
+                                <label class="font400">{{container.expanded_config['image.os']}} {{container.expanded_config['image.release']}} ({{container.expanded_config['image.architecture']}})</label>
+                            </div>
+                            <div class="form-group">
+                                <h5 class="inline">Created On:</h5>
+                                <label class="font400">{{container.created_at}}</label>
+                            </div>
+
+                            <div class="form-group">
+                                <h5 class="inline">Is set to Autostart :</h5>
+                                <div class="btn-group" role="group">
+                                    <button type="button" id="buttonAutostartActive" class="formModifier btn btn-xs btn-{{'success' if container.expanded_config['boot.autostart']=='1' else 'default'}}">Yes</button>
+                                    <button type="button" id="buttonAutostartInactive" class="formModifier btn btn-xs btn-{{'success' if container.expanded_config['boot.autostart']=='0' else 'default'}}">No</button>
+                                </div>
+                            </div>
+                            <div class="form-group profiles">
+                                <h5 class="inline">Profiles :</h5>
+                                <span id="profileList">
+                                {% for p in container.profiles %}
+                                    <span class="label label-default no-right-padding mg-right">{{ p }}
+                                        <a id="button_{{p}}" class="btn tag-button glyphicon glyphicon-remove profileTag formModifier" data-id="{{p}}" data-container="{{container.name}}"></a>
+                                    </span>
+                                {% endfor %}
+                                </span>
+                                    <select id="containerProfiles" name="profiles" style="display:none;">
+                                     {% for profile in profiles %}
+                                        {% if profile in container.profiles %}
+                                            <option>here</option>
+                                            <option selected>{{profile.name}}</option>
+                                        {% else %}
+                                            <option value="{{profile.name}}">{{profile.name}}</option>
+                                        {% endif %}
+                                     {% endfor %}
+                                    </select>
+                                    <!--<span class="label label-success no-right-padding mg-right">{{ p }}-->
+                                        <a id="buttonAdd" class="btn btn-default btn-xs glyphicon glyphicon-plus formModifier"></a>
+                                    <!--</span>-->
+                            </div>
+
+                    </div>
+                     <div class="col-sm-6">
+                         <div class="row">
+                             {% if container.pid != 'N/A' %}
+                                {% endif %} {% if container.processes != 'N/A' %}
+                                <div class="form-group">
+                                    PID: <span class="label label-primary"> {{container.pid}}</span>
+                                </div>
+                                <div class="form-group">
+                                     <h5 class="inline">Currently Running Processes :</h5>
+                                    <span class="label label-info ">{{container.processes}}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                         <div class="row border-space">
+                             <div class="form-group">
+                                    <h5 class="inline">CPU Allocation :</h5>
+                                    <span class="font400">{{container.config['limits.cpu.allowance']}}</span>
+                                </div>
+                                <div class="form-group">
+                                    <h5 class="inline">Memory Allocation :</h5>
+                                    <span class="font400">{{container.config['limits.memory']}}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                  </div>
+              </div>
+				<div class="tab-pane network-tab col-lg-12 col-md-12 col-sm-12 add-borders" id="2">
+
+                   <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="form-group">
+                                {% if container.network is mapping %}
+                            <h5 class="bg-bottom"><b><img src="../static/images/NIC-icon.png" class="img-network-interfaces" alt="" /> Network Interfaces </b><button class="btn btn-success pull-right btn-rounded-corners showAddNetworkInterfaceDialog"><i class="glyphicon glyphicon-plus"></i> Add</button></h5>
+                                {% for key, value in container.network.items() %}
+                                {% if key!='lo' %}
+                        <div class="row borders">
+                            <div class="col-sm-1 col-md-1 col-lg-1 pd0 text-center">
+                                    <div class="col-sm-12 col-md-12 col-lg-12 status-div">
+                                        <span class="label label-{% if value.state == 'up' %}success{%else%}danger{%endif%}">{{value.state|upper}}</span>
+                                    </div>
+                                     <!--<div class="col-sm-12 col-md-12 col-lg-12 pd0 mgtop-50">-->
+
+                                            <!--<div class="btn-group" role="group">-->
+                                                <!--<button type="button" id="" class="formModifier btn btn-xs btn-default" onclick="">On</button>-->
+                                                <!--<button type="button" id="" class="formModifier btn btn-xs btn-danger" onclick="">Off</button>-->
+                                            <!--</div>-->
+                                     <!--</div>-->
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2">
+                                <ul class="network-list">
+                                    <li>
+                                         Interface <span class="mg-left5"> <b>{{ key }}</b></span>
+                                    </li>
+                                    <li>
+                                        Bridge <span class="mg-left5"> n/a </span>
+                                    </li>
+                                    <li>
+                                        Host IFC  <span class="mg-left5"> n/a</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-sm-5 col-md-5 col-lg-5">
+                                <ul class="network-list">
+                                    {% if value.addresses == None %}
+                                    <li>N/A</li>
+                                    {% else %}
+                                        <li>
+                                            MAC Address  <span class="mg-left5">{{value.hwaddr}}</span>
+                                        </li>
+                                         {% for address in value.addresses %}
+                                            <li>
+                                                IP{% if address.family == 'inet' %}v4{% elif address.family == 'inet6' %}v6{% endif %} Address
+                                                <span class="mg-left5"><b>{{address.address}}/{{address.netmask}}</b></span>
+                                            </li>
+                                         {% endfor %}
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            <div class="col-sm-3 col-md-3 col-lg-3">
+                                <table class="table table-bordered">
+                                    <tr>
+                                            <th>Sent</th>
+                                            <th>Received</th>
+                                    </tr>
+                                    <tbody>
+                                         <tr>
+                                            <td>{% if container.network[key]['counters']['bytes_sent'] > 1610612736 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['bytes_sent']/1073741824)}}&nbsp;GiB
+                                             {% elif container.network[key]['counters']['bytes_sent'] > 1572864 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['bytes_sent']/1048576)}}&nbsp;MiB
+                                             {% elif container.network[key]['counters']['bytes_sent'] > 1536 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['bytes_sent']/1024)}}&nbsp;kiB
+                                             {% else %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['bytes_sent'])}}&nbsp;B
+                                             {% endif %}
+                                            </td>
+                                            <td>{% if container.network[key]['counters']['bytes_received'] > 1610612736 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['bytes_received']/1073741824)}}&nbsp;GiB
+                                             {% elif container.network[key]['counters']['bytes_received'] > 1572864 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['bytes_received']/1048576)}}&nbsp;MiB
+                                             {% elif container.network[key]['counters']['bytes_received'] > 1536 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['bytes_received']/1024)}}&nbsp;kiB
+                                             {% else %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['bytes_received'])}}&nbsp;B
+                                             {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>{% if container.network[key]['counters']['packets_sent'] > 1500000000 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['packets_sent']/1500000000)}}&nbsp;Gpkts
+                                             {% elif container.network[key]['counters']['packets_sent'] > 1500000 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['packets_sent']/1000000)}}&nbsp;Mpkts
+                                             {% elif container.network[key]['counters']['packets_sent'] > 1500 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['packets_sent']/1000)}}&nbsp;kpkts
+                                             {% else %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['packets_sent'])}}&nbsp;pkts
+                                             {% endif %}
+                                            </td>
+                                            <td>{% if container.network[key]['counters']['packets_received'] > 1500000000 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['packets_received']/1500000000)}}&nbsp;Gpkts
+                                             {% elif container.network[key]['counters']['packets_received'] > 1500000 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['packets_received']/1000000)}}&nbsp;Mpkts
+                                             {% elif container.network[key]['counters']['packets_received'] > 1500 %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['packets_received']/1000)}}&nbsp;kpkts
+                                             {% else %}
+                                                    {{'%0.2f'|format(container.network[key]['counters']['packets_received'])}}&nbsp;pkts
+                                             {% endif %}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                 <!--{% for counterkey, counterval in value.counters.items() %}-->
+                                            <!--{{counterkey|upper}} :-->
+                                            <!--<span class="label label-default">{{counterval}}</span>-->
+                                            <!--<br/>-->
+                                        <!--{% endfor %}-->
+
+                            </div>
+                            <div class="col-sm-1 col-md-1 col-lg-1 pd0">
+                                <button class="btn btn-default pull-right deleteInterfaceBtn" onclick="App.containerDetails.deleteInterface('{{key}}')"><i class="glyphicon glyphicon-trash"></i></button>
+                            </div>
+                        </div>
+
+
+                                <!--<div class="row space">-->
+                                    <!--<div class="col-sm-6">-->
+                                        <!--IP Interface : <span class="label label-primary"> {{ key }}</span>-->
+                                        <!--<br/>-->
+                                        <!--{% if value.addresses|length > 0 %}-->
+                                        <!--IP Address : <span class="label label-default">{{value.addresses.0.address}}</span>-->
+                                        <!--<span class="label label-warning">/{{value.addresses.0.netmask}}</span>-->
+                                        <!--{% endif %}-->
+                                        <!--<br/>-->
+                                        <!--MAC Address-->
+                                        <!--: <b class="big-font">{{value.hwaddr}}</b>-->
+                                        <!--<br/>-->
+                                        <!--State : <span class="label label-{% if value.state == 'up' %}success{%else%}danger{%endif%}">{{value.state|upper}}</span>-->
+                                    <!--</div>-->
+                                    <!--<div class="col-sm-5">-->
+                                        <!--{% for counterkey, counterval in value.counters.items() %}-->
+                                            <!--{{counterkey|upper}} :-->
+                                            <!--<span class="label label-default">{{counterval}}</span>-->
+                                            <!--<br/>-->
+                                        <!--{% endfor %}-->
+                                    <!--</div>-->
+                                <!--</div>-->
+                                <!--netint_data row end-->
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                                <h5 class="inline">Network Interfaces : </h5>
+                                <span class="label label-default"> N/A </span>
+                            {% endif %}
+                        </div> <!-- form-group end-->
+                    </div> <!--col-sm-12 end-->
+                    <!-- Network proxy section -->
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <h4>Port Mapping
+                            <button class="btn btn-success pull-right showAddProxyDialog btn-rounded-corners"><i class="glyphicon glyphicon-plus"></i> Add</button>
+                        </h4>
+
+                        <table class="table">
+                            <thead>
+                                <th>
+                                    Proxy Name
+                                </th>
+                                <th></th>
+                                <th>
+                                    Host
+                                </th>
+
+                                <th>
+                                    Protocol
+                                </th>
+
+                                <th>
+                                    Port
+                                </th>
+                                <th></th>
+                                <th>
+                                    Container
+                                </th>
+                                <th>
+                                    Protocol
+                                </th>
+                                <th>
+                                    Port
+                                </th>
+                                <th></th>
+                            </thead>
+                            <tbody>
+                            {% for key, value in container.devices.items() %}
+                                {% if value['type'] == 'proxy' %}
+                                <tr>
+                                    <td>{{key}}</td>
+                                    <td>:</td>
+                                    <td class="ipToExtract">{{value['listen']}}</td>
+                                    <td>{{value['listen'][:3]}}</td>
+                                    <td class="portToExtract">{{value['listen']}}</td>
+                                    <td><i class="glyphicon glyphicon-arrow-right"></i> </td>
+                                    <td class="ipToExtract">{{value['connect']}}</td>
+                                    <td>{{value['connect'][:3]}}</td>
+                                    <td class="portToExtract">{{value['connect']}}</td>
+                                    <td><a onClick="App.containerDetails.removeProxy('{{key}}')" class="btn btn-default btn-sm">
+                                        <i class="glyphicon glyphicon-trash"></i>
+                                    </a> </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+				</div>
+                <div class="tab-pane snapshots-tab col-sm-12 col-md-12 col-lg-12 pd-left0 pd-right0 add-borders" id="3">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="form-group">
+                               <h5 class="bg-bottom"></span>
+                                    <button id="buttonNewContainerSnapshot" class="btn btn-sm btn-success" disabled><span class="glyphicon glyphicon-plus-sign"></span> New Container</button>
+                                    <button id="buttonRestoreSnapshot" class="btn btn-sm btn-info" disabled><span class="glyphicon glyphicon-repeat"></span> Restore</button>
+                                    <button id="buttonDeleteSnapshot" class="btn btn-sm btn-danger" disabled><span class="glyphicon glyphicon-remove-sign"></span> Delete</button>
+                               </h5>
+                            <div id="snapshotList" class="row space">
+                                 <table class="table" id="tableSnapshots">
+                                    <thead>
+                                        <th></th>
+                                        <th>Name</th>
+                                        <th>Created at</th>
+                                        <th>Stateful</th>
+                                    </thead>
+                                    <tbody>
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane col-lg-12 col-md-12 col-sm-12 advanced-settings-tab add-borders" id="4">
+                    <div class="col-lg-12 col-md-12 col-sm-12" id="advancedSettings">
+                        <div class="form-group">
+                            <h5 class="bg-bottom"><b>Advanced Settings : </b></h5>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-1"></div>
+                             <div class="col-lg-4">
+                                <div class="row"><label for="Key">Key</label></div>
+                             </div>
+                             <div class="col-lg-1"></div>
+                             <div class="col-lg-4">
+                                <div class="row"><label for="Value">Value</label></div>
+                             </div>
+
+                        </div>
+                    </div>
+			    </div>
+                <div class="tab-pane col-lg-12 col-md-12 col-sm-12 file-manager-tab add-borders" id="5">
+                    <div class="col-lg-12 col-md-12 col-sm-12" id="fileManager">
+                        <div class="form-group mg-top15">
+                            <!--<h5 class="bg-bottom"><b>Advanced Settings : </b></h5>-->
+                             <button class="btn btn-default" id="file-btn-home">Home</button>
+                            <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+                             <button class="btn btn-default" id="file-btn-new">New</button>
+                             <button class="btn btn-default" id="file-btn-upload">Upload</button>
+                             <button class="btn btn-default" id="file-btn-download" disabled>Download</button>
+                             <button class="btn btn-default" id="file-btn-view" disabled>View</button>
+                             <button class="btn btn-default" id="file-btn-edit" disabled>Edit</button>
+                             <button class="btn btn-default" id="file-btn-delete">Delete</button>
+                        </div>
+                        <div class="row">
+                            <div class="form-group mg-top15 file-tree">
+                                <div id="tree"></div>
+                            </div>
+                        </div>
+
+                    </div>
+			    </div>
+
+
+
+         </div>
+        </div>
+</div>
+{% endif %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="cloneContainerModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+                <form id="cloneContainerForm" class="form-horizontal">
+                    <div class="form-group">
+                        <label for="newContainerClone" class="col-sm-3 control-label">Clone Name</label>
+                        <div class="col-sm-8">
+                            <input id="newContainerClone" name="newContainer" class="form-control" type="text" placeholder="Clone Name" title="Clone Name" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-inline col-md-offset-3 col-md-3 mgtop-10">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" id="cloneContainerSubmit" form="cloneContainerForm" class="btn btn-primary">Clone <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="moveContainerModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+                <form id="moveContainerForm" class="form-horizontal">
+                    <div class="form-group">
+                        <label for="newContainerMove" class="col-sm-3 control-label">Move Container Name</label>
+                        <div class="col-sm-8">
+                            <input id="newContainerMove" name="newContainer" class="form-control" type="text" placeholder="Move Container Name" title="Move Container Name" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-inline col-md-offset-3 col-md-3 mgtop-10">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" id="moveContainerSubmit" form="moveContainerForm" class="btn btn-primary">Move <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exportContainerModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+                <form id="exportContainerForm" class="form-horizontal">
+                    <div class="form-group">
+                        <label for="imageAlias" class="col-sm-3 control-label">Image Alias</label>
+                        <div class="col-sm-8">
+                            <input id="imageAlias" name="imageAlias" class="form-control" type="text" placeholder="Image Alias" title="Image Alias" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-inline col-md-offset-3 col-md-3" class="mgtop-10">
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" id="exportContainerSubmit" form="exportContainerForm" class="btn btn-primary">Export <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="snapshotContainerModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+                <form id="snapshotContainerForm" class="form-horizontal">
+                    <div class="form-group">
+                        <label for="snapshotName" class="col-sm-3 control-label">Snapshot Name</label>
+                        <div class="col-sm-8">
+                            <input id="snapshotName" name="snapshotName" class="form-control" type="text" placeholder="Snapshot Name" title="Snapshot Name" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="snapshotStateful" class="col-sm-3 control-label">Stateful</label>
+                        <input type="checkbox" class="form-check-input" id="snapshotStateful" name="stateful">
+                    </div>
+                    <div class="form-group">
+                        <div class="form-inline col-md-offset-3 col-md-3" class="mgtop-10">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" id="snapshotContainerSubmit" form="snapshotContainerForm" class="btn btn-primary">Snapshot <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="containerFromSnapshotModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+                <form id="containerFromSnapshotForm" class="form-horizontal">
+                    <div class="form-group">
+                        <label for="newContainerSnapshot" class="col-sm-3 control-label">New Container Name</label>
+                        <div class="col-sm-8">
+                            <input id="newContainerSnapshot" name="newContainer" class="form-control" type="text" placeholder="Container Name" title="Create Container Name" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-inline col-md-offset-3 col-md-3" class="mgtop-10">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" id="containerFromSnapshotSubmit" class="btn btn-primary">New Container <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="newFileManagerModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">New File > <span id="path"></span></h4>
+            </div>
+            <div class="modal-body">
+                <form id="newFileManagerForm" class="form-horizontal">
+                    <div class="form-group">
+                        <label for="fileName" class="col-sm-1 control-label">Name</label>
+                        <div class="col-sm-11">
+                            <input id="fileName" name="filename" class="form-control" type="text" placeholder="File name" title="" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-lg-12">
+                            <textarea name="fileContent" id="fileContent" cols="68" rows="10"></textarea>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer text-center">
+                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="submit" id="newFileSubmit" class="btn btn-primary">Save <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+            </div>
+      </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="viewFileModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">home/user/folder/something.txt </h4>
+            </div>
+            <div class="modal-body">
+                 <form id="editFileManagerForm" class="form-horizontal">
+                    <div class="form-group">
+                        <div class="col-lg-12">
+                            <textarea name="" id="viewText" cols="68" rows="10"></textarea>
+                        </div>
+                    </div>
+                 </form>
+            </div>
+            <div class="modal-footer text-center">
+                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+      </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="editFileModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">home/user/folder/something.txt </h4>
+            </div>
+            <div class="modal-body">
+                    <div class="form-group">
+                        <div class="col-lg-12">
+                            <textarea name="" id="editText" cols="68" rows="10"></textarea>
+                        </div>
+                    </div>
+            </div>
+            <div class="modal-footer text-center">
+                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="submit" id="editFileSubmit" class="btn btn-primary">Save <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+            </div>
+      </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="deleteFileModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Delete File </h4>
+            </div>
+            <div class="modal-body">
+                    <div class="form-group">
+                        <div class="col-lg-12">
+                            Delete? <span class="filePathName">/home/user/folder/something.txt</span>
+                        </div>
+                    </div>
+            </div>
+            <div class="modal-footer text-center">
+                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="submit" id="deleteFileSubmit" class="btn btn-primary">Delete <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+            </div>
+      </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="uploadFileModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">New File > <span id="uploadFolderLocation">/</span></h4>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" class="form-horizontal" method="POST" enctype="multipart/form-data" action="/api/file/container/{{container.name}}">
+                    <div class="form-group">
+                        <label for="Path" class="col-sm-1 control-label">Path</label>
+                        <div class="col-sm-11">
+                            <input id="pathName" name="path" class="form-control" type="text" placeholder="Path name" title="Path name" required/>
+                        </div>
+                    </div>
+                     <div class="form-group">
+                        <label class="col-sm-1 control-label">File</label>
+                        <div class="col-sm-11">
+                            <input id="uploadFile" name="file" accept="" class="form-control" type="file" placeholder="Select file to upload" title="" required/>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer text-center">
+                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" id="uploadFileSubmit" class="btn btn-primary">Upload <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+            </div>
+      </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addProxyModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Port Mapping </h4>
+            </div>
+            <div class="modal-body">
+                <form id="addProxyForm" class="form-horizontal" method="POST" enctype="multipart/form-data" action="/api/file/container/{{container.name}}">
+                    <div class="form-group">
+                        <label for="Name" class="col-sm-2 control-label">Name</label>
+                        <div class="col-sm-10">
+                            <input id="name" name="name" class="form-control" type="text" placeholder="Name" title="Name" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="protocol" class="col-sm-2 control-label">Protocol</label>
+                        <div class="col-sm-10">
+                            <select id="protocol" name="protocol">
+                                <option value="tcp">TCP</option>
+                                <option value="udp">UDP</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="host" class="col-sm-2 control-label">Host IP</label>
+                        <div class="col-sm-10">
+                            <input id="host" name="host" class="form-control" type="text" placeholder="Host" title="Host"
+                                   pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="hostPort" class="col-sm-2 control-label">Port</label>
+                        <div class="col-sm-10">
+                            <input id="hostPort" name="hostPort" class="form-control" type="text" placeholder="Host port" title="Host port" required/>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="container" class="col-sm-2 control-label">Container IP</label>
+                        <div class="col-sm-10">
+                            <input id="container" name="container" class="form-control" type="text" placeholder="Container" title="Container"
+                                   pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="container" class="col-sm-2 control-label">Container Port</label>
+                        <div class="col-sm-10">
+                            <input id="containerPort" name="containerPort" class="form-control" type="text" placeholder="Container port" title="Container port" required/>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer text-center">
+                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" id="addProxy" class="btn btn-primary">Save <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+            </div>
+      </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addNetworkInterfaceModal" role="dialog" tabindex="-1">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Add Network Interface</h4>
+
+            </div>
+            <div class="modal-body">
+                <form id="addNetworkInterfaceForm" class="form-horizontal" method="POST" enctype="multipart/form-data" action="/network/{{container.name}}/add'">
+                    <div class="form-group">
+                        <label for="name" class="col-sm-4 control-label">Device Name</label>
+                        <div class="col-sm-8">
+                            <input id="nameNetwork" name="name" class="form-control width200" type="text" placeholder="Device Name" title="Name" required/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="interface" class="col-sm-4 control-label">Interface Type*</label>
+                        <div class="col-sm-7">
+                            <select class="width200" id="interface" name="nictype" readonly>
+                                <option value="bridged" selected>bridged</option>
+                            </select>
+                            <a
+                                    href="#"
+                                    title="Information"
+                                    data-toggle="popover"
+                                    data-trigger="hover"
+                                    data-html="true"
+                                    data-content=" <div>Example for adding a bridged nic from the command line: <br />
+                                     lxc config device add c1 eth1 nic name=eth1 <br />
+                                     nictype=bridged parent=lxdbr0 <br /><br /><br /><br />
+                                     For configuration details please refer to: https://lxd.readthedocs.io/en/latest/containers/#type-nic <br />
+                                     physical: Straight physical device passthrough from the host. The targeted device will vanish from the host and appear in the container.<br /><br />
+                                     bridged: Uses an existing bridge on the host and creates a virtual device pair to connect the host bridge to the container.<br /><br />
+                                     macvlan: Sets up a new network device based on an existing one but using a different MAC address.<br /><br />
+                                     p2p: Creates a virtual device pair, putting one side in the container and leaving the other side on the host.<br /><br />
+                                     sriov: Passes a virtual function of an SR-IOV enabled physical network device into the container.</div>"
+                                    data-original-title="Information">
+                                <span class="glyphicon glyphicon-info-sign"></span>
+                             </a>
+
+
+                        </div>
+                        <!--<div class="col-sm-1">-->
+                            <!---->
+                        <!--</div>-->
+                    </div>
+                     <div class="form-group">
+                            <label for="name" class="col-sm-4 control-label">Connect to Bridge</label>
+                            <div class="col-sm-8">
+                                 <select class="width200" id="parent" name="parent">
+                                    {% for network in networks %}
+                                     {% if network.type == 'bridge' %}
+                                        <option value="{{network.name}}">{{network.name}}</option>
+                                     {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                     </div>
+                    <input name="type" value="nic" class="hidden" />
+                </form>
+            </div>
+            <div class="modal-footer text-center">
+                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" id="addNetwork" class="btn btn-primary">Save <span class="glyphicon glyphicon-refresh spinning loader"></span></button>
+            </div>
+      </div>
+    </div>
+</div>
+{% endblock %}
